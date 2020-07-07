@@ -1,34 +1,29 @@
 from enum import Enum, auto
 
 def clue_sanity_check(r_clues, c_clues):
+    # Type Checks
     if type(r_clues) is not list:
-        raise TypeError(type(r_clues))
+        raise TypeError('r_clues must be a list.')
     if type(c_clues) is not list:
-        raise TypeError(type(c_clues))
-    for clue in r_clues:
-        if type(clue) is not list:
-            raise TypeError(type(clue))
-        for n in clue:
-            if type(n) is not int:
-                raise TypeError(type(n))
-        if sum(clue)+len(clue)-1 > len(c_clues):
-            raise ValueError(clue)
-    for clue in c_clues:
-        if type(clue) is not list:
-            raise TypeError(type(clue))
-        for n in clue:
-            if type(n) is not int:
-                raise TypeError(type(n))
-        if sum(clue)+len(clue)-1 > len(r_clues):
-            raise ValueError(clue)
+        raise TypeError('c_clues must be a list.')
+    if any(type(clue) is not list for clue in r_clues):
+        raise TypeError('r_clues must be a list of lists.')
+    if any(type(clue) is not list for clue in c_clues):
+        raise TypeError('c_clues must be a list of lists.')
+    if any(any(type(n) is not int for n in clue) for clue in r_clues):
+        raise TypeError('All elements of r_clues must contain only ints.')
+    if any(any(type(n) is not int for n in clue) for clue in c_clues):
+        raise TypeError('All elements of c_clues must contain only ints.')
+    if any(sum(clue)+len(clue)-1 > len(c_clues) for clue in r_clues):
+        raise ValueError('One of the clues in r_clues is too big for this puzzle.')
+    if any(sum(clue)+len(clue)-1 > len(r_clues) for clue in c_clues):
+        raise ValueError('One of the clues in c_clues is too big for this puzzle.')
 
 class Puzzle:
     def __init__(self, r_clues, c_clues):
         clue_sanity_check(r_clues, c_clues)
         self.row_clues = r_clues
         self.column_clues = c_clues
-
-test_puzzle = Puzzle([[5],[3],[1],[3],[5]], [[1,1],[2,2],[5],[2,2],[1,1]])
 
 class Cell(Enum):
     unknown = auto()
