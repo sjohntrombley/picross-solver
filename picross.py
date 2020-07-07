@@ -1,5 +1,16 @@
 from enum import Enum, auto
 
+class Cell(Enum):
+    unknown = auto()
+    filled = auto()
+    empty = auto()
+
+    def __str__(self):
+        return ('█' if self is Cell.filled else
+                'X' if self is Cell.empty else
+                '?'
+                )
+
 def clue_sanity_check(r_clues, c_clues):
     # Type Checks
     if type(r_clues) is not list:
@@ -14,10 +25,15 @@ def clue_sanity_check(r_clues, c_clues):
         raise TypeError('All elements of r_clues must contain only ints.')
     if any(any(type(n) is not int for n in clue) for clue in c_clues):
         raise TypeError('All elements of c_clues must contain only ints.')
+    # Check for clues that are too long
     if any(sum(clue)+len(clue)-1 > len(c_clues) for clue in r_clues):
-        raise ValueError('One of the clues in r_clues is too big for this puzzle.')
+        raise ValueError(
+                'One of the clues in r_clues is too big for this puzzle.'
+                )
     if any(sum(clue)+len(clue)-1 > len(r_clues) for clue in c_clues):
-        raise ValueError('One of the clues in c_clues is too big for this puzzle.')
+        raise ValueError(
+                'One of the clues in c_clues is too big for this puzzle.'
+                )
 
 class Puzzle:
     def __init__(self, r_clues, c_clues):
@@ -25,37 +41,57 @@ class Puzzle:
         self.row_clues = r_clues
         self.column_clues = c_clues
 
-class Cell(Enum):
-    unknown = auto()
-    filled = auto()
-    empty = auto()
-
-class Grid:
-    def __init__(self, r_clues, c_clues):
-        self.grid = [ [Cell.unknown]*len(c_clues) for _ in r_clues ]
-
-    def __len__(self):
-        return len(self.grid)
-
-    def __getitem__(self, key):
-        return self.grid[key]
+class Row(list):
+    def __init__(self, n_cols):
+        super().__init__()
+        super().extend(Cell.unknown for _ in range(n_cols))
 
     def __setitem__(self, key, value):
-        self.grid[key] = value
-
-    def __delitem__(self, key):
-        del self.grid[key]
-
-    def __repr__(self):
-        return str(self)
+        if type(value) is not Cell:
+            raise ValueError('Elements of a Row must be Cells.')
+        super().__setitem__(key, value)
 
     def __str__(self):
-        s = ''
-        for r in self.grid:
-            for c in r:
-                s += '█' if c is Cell.filled else 'X' if c is Cell.empty else '?'
-            s += '\n'
-        return s[:-1]
+        return ''.join(str(cell) for cell in self)
+
+    __delitem__ = None
+    __iadd__ = None
+    __imul__ = None
+    append = None
+    clear = None
+    extend = None
+    insert = None
+    pop = None
+    remove = None
+    reverse = None
+    sort = None
+
+class Grid(list):
+    def __init__(self, n_rows, n_cols):
+        super().__init__()
+        super().extend(Row(n_cols) for _ in range(n_rows))
+
+    def __setitem__(self, key, value):
+        if type(value) is not Row:
+            raise TypeError('Elements of a Grid must be Rows.')
+        if len(value) != len(self[key]):
+            raise ValueError('Cannot change the size of Rows in a Grid.')
+        super().__setitem__(key, value)
+
+    def __str__(self):
+        return '\n'.join(str(row) for row in self)
+
+    __delitem__ = None
+    __iadd__ = None
+    __imul__ = None
+    append = None
+    clear = None
+    extend = None
+    insert = None
+    pop = None
+    remove = None
+    reverse = None
+    sort = None
 
 def last_gap(gap):
     return gap[-1]==0 and all(g==1 for g in gap[1:-1])
@@ -156,21 +192,22 @@ def col_merge_gaps(clues, updates, gap):
                     updates[row_index]['state'] = Cell.unknown
         offset += gap[clue_index+1]
 
-def pretty_slice(slice):
-        return ''.join('█' if c is Cell.filled else 'X' if c is Cell.empty else '?' for c in slice)
-
-def pretty_update(updates):
-    return (
-            '[' + ', '.join(
-                (
-                    '█' if c['state'] is Cell.filled
-                    else 'X' if c['state'] is Cell.empty else '?'
-                    )
-                + ('L' if c['locked'] else 'U')
-                for c in updates
-                )
-            + ']'
-            )
+# this was for debuggin, probably gets deleted
+#def pretty_slice(slice):
+#        return ''.join('█' if c is Cell.filled else 'X' if c is Cell.empty else '?' for c in slice)
+#
+#def pretty_update(updates):
+#    return (
+#            '[' + ', '.join(
+#                (
+#                    '█' if c['state'] is Cell.filled
+#                    else 'X' if c['state'] is Cell.empty else '?'
+#                    )
+#                + ('L' if c['locked'] else 'U')
+#                for c in updates
+#                )
+#            + ']'
+#            )
 
 def solve2(p):
     if type(p) is not Puzzle:
