@@ -93,126 +93,84 @@ class Grid(list):
     reverse = None
     sort = None
 
-def last_gap(gap):
+def is_last_gap(gap):
     return gap[-1]==0 and all(g==1 for g in gap[1:-1])
 
 def next_gap(gap):
+    if is_last_gap(gap):
+        return gap
     if gap[-1] > 0:
         return gap[:-2] + [ gap[-2]+1, gap[-1]-1 ]
     for i in reversed(range(len(gap)-1)):
         if gap[i] > 1:
-            return gap[:i-1] + [gap[i-1]+1] + [1]*(len(gap)-i-1) + [sum(gap[i:])+i-len(gap)]
+            return (
+                    gap[:i-1] +
+                    [gap[i-1]+1] +
+                    [1]*(len(gap)-i-1) +
+                    [sum(gap[i:])+i-len(gap)]
+                    )
 
 def gaps_gen(clues, length):
     gap = [0] + [1]*(len(clues)-1) + [length-sum(clues)-len(clues)+1]
     yield gap
-    while not last_gap(gap):
+    while not is_last_gap(gap):
         gap = next_gap(gap)
         yield gap
 
-def row_merge_gaps(clues, updates, gap):
+def merge_gaps(clues, updates, gap):
     # Skip this arrangement if impossible
-    if any(cell['locked'] and cell['state'] is Cell.filled for cell in updates[:gap[0]]):
+    if any(
+            cell['locked'] and cell['state'] is Cell.filled
+            for cell in updates[:gap[0]]
+            ):
         return
     offset = gap[0]
-    for col_index in range(len(clues)):
-        if any(cell['locked'] and cell['state'] is Cell.empty for cell in updates[offset:offset+clues[col_index]]):
+    for i in range(len(clues)):
+        if any(
+                cell['locked'] and cell['state'] is Cell.empty
+                for cell in updates[offset:offset+clues[i]]
+                ):
             return
-        offset += clues[col_index]
-        if any(cell['locked'] and cell['state'] is Cell.filled for cell in updates[offset:offset+gap[col_index+1]]):
+        offset += clues[i]
+        if any(
+                cell['locked'] and cell['state'] is Cell.filled
+                for cell in updates[offset:offset+gap[i+1]]
+                ):
             return
-        offset += gap[col_index+1]
-
-    # merge the current arrangement
-    for col_index in range(gap[0]):
-        if not updates[col_index]['locked']:
-            if updates[col_index]['state'] is Cell.unknown:
-                updates[col_index]['state'] = Cell.empty
-            elif updates[col_index]['state'] is Cell.filled:
-                updates[col_index]['locked'] = True
-                updates[col_index]['state'] = Cell.unknown
-    offset = gap[0]
-    for clue_index in range(len(clues)):
-        for col_index in range(offset,offset+clues[clue_index]):
-            if not updates[col_index]['locked']:
-                if updates[col_index]['state'] is Cell.unknown:
-                    updates[col_index]['state'] = Cell.filled
-                elif updates[col_index]['state'] is Cell.empty:
-                    updates[col_index]['locked'] = True
-                    updates[col_index]['state'] = Cell.unknown
-        offset += clues[clue_index]
-
-        for col_index in range(offset,offset+gap[clue_index+1]):
-            if not updates[col_index]['locked']:
-                if updates[col_index]['state'] is Cell.unknown:
-                    updates[col_index]['state'] = Cell.empty
-                elif updates[col_index]['state'] is Cell.filled:
-                    updates[col_index]['locked'] = True
-                    updates[col_index]['state'] = Cell.unknown
-        offset += gap[clue_index+1]
-
-def col_merge_gaps(clues, updates, gap):
-    # Skip this arrangement if impossible
-    if any(cell['locked'] and cell['state'] is Cell.filled for cell in updates[:gap[0]]):
-        return
-    offset = gap[0]
-    for row_index in range(len(clues)):
-        if any(cell['locked'] and cell['state'] is Cell.empty for cell in updates[offset:offset+clues[row_index]]):
-            return
-        offset += clues[row_index]
-        if any(cell['locked'] and cell['state'] is Cell.filled for cell in updates[offset:offset+gap[row_index+1]]):
-            return
-        offset += gap[row_index+1]
+        offset += gap[i+1]
 
     # Merge the current arrangement
-    for row_index in range(gap[0]):
-        if not updates[row_index]['locked']:
-            if updates[row_index]['state'] is Cell.unknown:
-                updates[row_index]['state'] = Cell.empty
-            elif updates[row_index]['state'] is Cell.filled:
-                updates[row_index]['locked'] = True
-                updates[row_index]['state'] = Cell.unknown
+    for cell_index in range(gap[0]):
+        if not updates[cell_index]['locked']:
+            if updates[cell_index]['state'] is Cell.unknown:
+                updates[cell_index]['state'] = Cell.empty
+            elif updates[cell_index]['state'] is Cell.filled:
+                updates[cell_index]['locked'] = True
+                updates[cell_index]['state'] = Cell.unknown
     offset = gap[0]
     for clue_index in range(len(clues)):
-        for row_index in range(offset,offset+clues[clue_index]):
-            if not updates[row_index]['locked']:
-                if updates[row_index]['state'] is Cell.unknown:
-                    updates[row_index]['state'] = Cell.filled
-                elif updates[row_index]['state'] is Cell.empty:
-                    updates[row_index]['locked'] = True
-                    updates[row_index]['state'] = Cell.unknown
+        for cell_index in range(offset,offset+clues[clue_index]):
+            if not updates[cell_index]['locked']:
+                if updates[cell_index]['state'] is Cell.unknown:
+                    updates[cell_index]['state'] = Cell.filled
+                elif updates[cell_index]['state'] is Cell.empty:
+                    updates[cell_index]['locked'] = True
+                    updates[cell_index]['state'] = Cell.unknown
         offset += clues[clue_index]
 
-        for row_index in range(offset,offset+gap[clue_index+1]):
-            if not updates[row_index]['locked']:
-                if updates[row_index]['state'] is Cell.unknown:
-                    updates[row_index]['state'] = Cell.empty
-                elif updates[row_index]['state'] is Cell.filled:
-                    updates[row_index]['locked'] = True
-                    updates[row_index]['state'] = Cell.unknown
+        for cell_index in range(offset,offset+gap[clue_index+1]):
+            if not updates[cell_index]['locked']:
+                if updates[cell_index]['state'] is Cell.unknown:
+                    updates[cell_index]['state'] = Cell.empty
+                elif updates[cell_index]['state'] is Cell.filled:
+                    updates[cell_index]['locked'] = True
+                    updates[cell_index]['state'] = Cell.unknown
         offset += gap[clue_index+1]
-
-# this was for debuggin, probably gets deleted
-#def pretty_slice(slice):
-#        return ''.join('█' if c is Cell.filled else 'X' if c is Cell.empty else '?' for c in slice)
-#
-#def pretty_update(updates):
-#    return (
-#            '[' + ', '.join(
-#                (
-#                    '█' if c['state'] is Cell.filled
-#                    else 'X' if c['state'] is Cell.empty else '?'
-#                    )
-#                + ('L' if c['locked'] else 'U')
-#                for c in updates
-#                )
-#            + ']'
-#            )
 
 def solve2(p):
     if type(p) is not Puzzle:
         raise TypeError("First argument to solve2 must be of Puzzle type.")
-    grid = Grid(p.row_clues, p.column_clues)
+    grid = Grid(len(p.row_clues), len(p.column_clues))
     row_clues, col_clues = p.row_clues, p.column_clues
     update, done = True, False
     #pass_n = 1
@@ -237,7 +195,7 @@ def solve2(p):
             this_row_updates = [ {'state':state, 'locked':state is not Cell.unknown} for state in this_row ]
             # Loop through possible arrangements
             for gap in gaps_gen(this_row_clues, len(this_row)):
-                row_merge_gaps(this_row_clues, this_row_updates, gap)
+                merge_gaps(this_row_clues, this_row_updates, gap)
 
             # Update the grid
             for col_index, cell in enumerate(this_row_updates):
@@ -275,7 +233,7 @@ def solve2(p):
             #print(f'==> [before]this_col_updates: {pretty_update(this_col_updates)}')
             # Loop through possible arrangements
             for gap in gaps_gen(this_col_clues, len(this_col)):
-                col_merge_gaps(this_col_clues, this_col_updates, gap)
+                merge_gaps(this_col_clues, this_col_updates, gap)
             #print(f'==> [after]this_col_updates: {pretty_update(this_col_updates)}')
 
             # Update the grid
